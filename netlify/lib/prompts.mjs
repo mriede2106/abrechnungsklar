@@ -1,12 +1,21 @@
 // Prüf-Prompts je Formular. Der Formularname (name="..." im HTML) entscheidet, welcher Prompt läuft.
 
-const JSON_SCHEMA = `{
-  "dokumente": [{"datei": "Dateiname", "art": "z. B. Jahresabrechnung Strom", "lesbar": true}],
-  "eckdaten": {
+const ECKDATEN = {
+  energie: `{
     "versorger": "", "energieart": "Strom|Gas", "zeitraum": "TT.MM.JJJJ–TT.MM.JJJJ",
     "verbrauch_kwh": null, "arbeitspreis_ct_kwh": null, "grundpreis_eur_monat": null,
     "rechnungsbetrag_eur": null, "abschlaege_eur": null, "ergebnis_eur": null, "ergebnis_art": "Nachzahlung|Guthaben"
-  },
+  }`,
+  nebenkosten: `{
+    "objekt": "Adresse/Lage ohne Mieternamen", "zeitraum": "TT.MM.JJJJ–TT.MM.JJJJ", "abrechnungsdatum": "TT.MM.JJJJ",
+    "spaetester_zugang": "TT.MM.JJJJ", "kosten_mieter_eur": null, "vorauszahlungen_eur": null,
+    "ergebnis_eur": null, "ergebnis_art": "Nachzahlung|Guthaben"
+  }`,
+};
+
+const schema = (art) => `{
+  "dokumente": [{"datei": "Dateiname", "art": "z. B. Jahresabrechnung", "lesbar": true}],
+  "eckdaten": ${ECKDATEN[art]},
   "befunde": [{
     "titel": "kurz",
     "einordnung": "RUECKZAHLUNG|EINSPARUNG|HINWEIS|NICHT_PRUEFBAR",
@@ -24,7 +33,7 @@ const JSON_SCHEMA = `{
   "textbaustein": "Kurzer, höflicher Text, den der Kunde an den Versorger bzw. Mieter/Vermieter senden kann, oder leer wenn nicht nötig"
 }`;
 
-const RULES = `Arbeitsregeln:
+const rules = (art) => `Arbeitsregeln:
 - Prüfe nur, was in den Unterlagen steht. Erfinde keine Preise, Beträge, Vertragsinhalte oder Rechtsprechung.
 - Rechne jede Zahl selbst nach und zeige die Rechnung im Feld "rechnung".
 - Fehlt eine Unterlage, die für einen Prüfpunkt nötig ist, ist der Befund NICHT_PRUEFBAR und die Unterlage gehört in "fehlende_unterlagen".
@@ -32,8 +41,11 @@ const RULES = `Arbeitsregeln:
 - RUECKZAHLUNG nur, wenn eine konkrete Abweichung zwischen Rechnung und Vertrag/Unterlagen belegt ist und "sicherheit" mindestens "mittel" ist.
 - Wenn alles stimmt, sag das klar. Ein sauberer Befund ist ein gutes Ergebnis.
 - Du gibst keine Rechtsberatung, sondern rechnerische Prüfhinweise.
-- Antworte ausschließlich mit einem JSON-Objekt nach diesem Schema, ohne Text davor oder danach:
-${JSON_SCHEMA}`;
+- Höchstens 10 Befunde, die wichtigsten zuerst. Beschreibungen knapp halten.
+- Nenne keine Namen von Mietern oder anderen Privatpersonen im Bericht.
+- WICHTIG für das Format: Verwende innerhalb von Textwerten niemals gerade doppelte Anführungszeichen ("). Für Zitate nur „…“ oder ‚…‘. Keine Zeilenumbrüche innerhalb von Textwerten.
+- Antworte ausschließlich mit einem JSON-Objekt nach diesem Schema, ohne Text davor oder danach und ohne Markdown-Codeblock:
+${schema(art)}`;
 
 export const PROMPTS = {
   "energie-check": {
@@ -52,7 +64,7 @@ Prüfpunkte, in dieser Reihenfolge:
 7. Tarifart: Läuft der Haushalt in der Grundversorgung oder einem teuren Alttarif? Wenn der Arbeitspreis auffällig hoch ist, EINSPARUNG als Hinweis auf einen Tarifvergleich, ohne konkrete Wettbewerberpreise zu nennen. Nenne Kündigungsfrist/Vertragsende, falls aus den Unterlagen ersichtlich.
 8. Abschlag: Empfiehl einen Monatsabschlag für das Folgejahr auf Basis von Verbrauch und aktuellem Preis, gerundet auf volle 5 €.
 
-${RULES}`,
+${rules("energie")}`,
   },
 
   "pilot-anfrage": {
@@ -77,7 +89,7 @@ Prüfpunkte, in dieser Reihenfolge:
 
 Für diesen Prüfbericht gilt: "RUECKZAHLUNG" bedeutet hier "KORREKTUR nötig" (Betrag falsch oder Position zu streichen), "EINSPARUNG" bedeutet "Risiko einer Kürzung durch den Mieter". Im Feld "textbaustein" bleibt es leer, außer ein Hinweis an den Mieter ist sinnvoll.
 
-${RULES}`,
+${rules("nebenkosten")}`,
   },
 };
 

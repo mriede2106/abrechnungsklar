@@ -103,7 +103,7 @@ Heutiges Datum: ${new Date().toISOString().slice(0, 10)}`;
     custom_id: makeCustomId(cfg.kuerzel, submissionId, data.name),
     params: {
       model: env("MODEL", "claude-sonnet-5-5"),
-      max_tokens: 8000,
+      max_tokens: 16000,
       system: cfg.system,
       messages: [{ role: "user", content: [...blocks, { type: "text", text }] }],
     },
@@ -139,11 +139,41 @@ export async function deleteBatch(id, fetchImpl = fetch) {
   if (!res.ok) throw new Error(`Löschen ${id}: ${res.status}`);
 }
 
+// Repariert typische Formfehler schrittweise anhand der Fehlerposition:
+// gerade Anführungszeichen in Textwerten, Zeilenumbrüche in Textwerten, Komma vor schließender Klammer.
+export function repairJson(raw) {
+  let s = raw;
+  for (let i = 0; i < 50; i++) {
+    try {
+      return JSON.parse(s);
+    } catch (e) {
+      const m = /position (\d+)/.exec(e.message);
+      if (!m) {
+        const t = s.replace(/,(\s*[}\]])/g, "$1");
+        if (t !== s) { s = t; continue; }
+        throw e;
+      }
+      const pos = Number(m[1]);
+      const ch = s[pos];
+      if (ch === "\n" || ch === "\r" || ch === "\t") { s = s.slice(0, pos) + " " + s.slice(pos + 1); continue; }
+      if (ch === "}" || ch === "]") {
+        const k = s.slice(0, pos).search(/,\s*$/);
+        if (k >= 0) { s = s.slice(0, k) + s.slice(pos); continue; }
+      }
+      const q = s.lastIndexOf('"', pos - 1);
+      if (q <= 0) throw e;
+      s = s.slice(0, q) + '\\"' + s.slice(q + 1);
+    }
+  }
+  throw new Error("JSON nicht reparierbar");
+}
+
 export function extractJson(text) {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("Keine JSON-Antwort");
-  return JSON.parse(text.slice(start, end + 1));
+  const raw = text.slice(start, end + 1);
+  return repairJson(raw);
 }
 
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -153,6 +183,7 @@ const LABEL = { RUECKZAHLUNG: "Rückzahlung", EINSPARUNG: "Einsparung", HINWEIS:
 const FARBE = { RUECKZAHLUNG: "#c4361c", EINSPARUNG: "#b26a00", HINWEIS: "#2f5d8a", NICHT_PRUEFBAR: "#6b7280" };
 
 export function renderReport(r, { titel, kunde, submissionId, modus, eckdaten = true }) {
+  const nk = !eckdaten;
   const ek = r.eckdaten || {};
   const befunde = Array.isArray(r.befunde) ? r.befunde : [];
   const summe = befunde.filter(b => b.einordnung === "RUECKZAHLUNG" && typeof b.betrag_eur === "number").reduce((a, b) => a + b.betrag_eur, 0);
@@ -177,7 +208,14 @@ export function renderReport(r, { titel, kunde, submissionId, modus, eckdaten = 
   return `<!DOCTYPE html><html lang="de"><body style="font-family:Arial,Helvetica,sans-serif;color:#17222c;max-width:720px;margin:0 auto;padding:16px">
   ${hinweisPruefer}
   <h2 style="margin:0 0 4px">${esc(titel)}</h2>
-  <div style="color:#666;font-size:13px;margin-bottom:16px">${esc(ek.versorger)} ${esc(ek.energieart)} · ${esc(ek.zeitraum)}</div>
+  <div style="color:#666;font-size:13px;margin-bottom:16px">${nk ? esc(ek.objekt) : esc(ek.versorger) + " " + esc(ek.energieart)} · ${esc(ek.zeitraum)}</div>
+  ${nk ? `<table style="border-collapse:collapse;font-size:13px;margin:12px 0">
+    <tr><td style="padding:3px 12px 3px 0;color:#666">Abrechnung vom</td><td>${esc(ek.abrechnungsdatum)}</td></tr>
+    <tr><td style="padding:3px 12px 3px 0;color:#666">Spätester Zugang beim Mieter</td><td><b>${esc(ek.spaetester_zugang)}</b></td></tr>
+    <tr><td style="padding:3px 12px 3px 0;color:#666">Kosten Mieter</td><td>${eur(ek.kosten_mieter_eur)}</td></tr>
+    <tr><td style="padding:3px 12px 3px 0;color:#666">Vorauszahlungen</td><td>${eur(ek.vorauszahlungen_eur)}</td></tr>
+    <tr><td style="padding:3px 12px 3px 0;color:#666">Ergebnis</td><td>${esc(ek.ergebnis_art)} ${eur(ek.ergebnis_eur)}</td></tr>
+  </table>` : ""}
   <p>${esc(r.zusammenfassung)}</p>
   ${summe > 0 ? `<p style="font-size:18px"><b>Mögliche Rückzahlung bzw. Korrektur: ${eur(summe)}</b></p>` : ""}
   ${!eckdaten ? "" : `<table style="border-collapse:collapse;font-size:13px;margin:12px 0">

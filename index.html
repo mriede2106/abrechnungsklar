@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abrechnungsklar</title>
+<meta name="description" content="Nebenkostenabrechnung prüfen lassen, bevor sie an die Mieter geht. Pilot für private Vermieter: 49 € pro Objekt, Bericht in 3 Werktagen.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: Ein Abrechnungsbogen als Leitmotiv. Links die These, rechts ein Auszug mit Prüfvermerken in Rotstift. Darunter ruhige Formular-Raster. */
+:root{
+  --paper:#eef0ea;
+  --sheet:#fbfcf8;
+  --ink:#17222c;
+  --muted:#5a6670;
+  --rule:#c9cfc6;
+  --mark:#c4361c;
+  --ok:#2f6b4f;
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#11171c;--sheet:#182128;--ink:#e6eae4;--muted:#9aa6ae;--rule:#2d3a43;--mark:#f0674a;--ok:#6fc29a;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11171c;--sheet:#182128;--ink:#e6eae4;--muted:#9aa6ae;--rule:#2d3a43;--mark:#f0674a;--ok:#6fc29a;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+a{color:inherit;text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.05}
+h1{font-size:clamp(2.3rem,5.6vw,4.2rem);font-weight:800;font-stretch:72%;letter-spacing:-.01em}
+h2{font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:750;font-stretch:78%}
+h3{font-size:1.15rem;font-weight:700;font-stretch:100%}
+p{margin:0}
+.lede{max-width:34em;color:var(--muted);font-size:1.12rem}
+
+/* Kopf */
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0;border-bottom:1px solid var(--rule)}
+.brand{font-family:var(--display);font-weight:800;font-stretch:115%;font-size:1.15rem;letter-spacing:.01em;text-decoration:none}
+.brand span{color:var(--mark)}
+.pill{font-family:var(--mono);font-size:.78rem;border:1px solid var(--rule);border-radius:99px;padding:4px 12px;color:var(--muted);white-space:nowrap}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center;padding:64px 0 72px}
+.hero-text{display:flex;flex-direction:column;gap:24px}
+.deadline{display:inline-flex;gap:10px;align-items:baseline;font-family:var(--mono);font-size:.85rem;color:var(--mark);font-weight:600}
+.cta-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.btn{display:inline-block;background:var(--ink);color:var(--paper);font-family:var(--body);font-weight:600;font-size:1rem;padding:14px 22px;border-radius:4px;border:0;text-decoration:none;cursor:pointer}
+.btn:hover{background:var(--mark);color:#fff}
+.price-note{font-size:.95rem;color:var(--muted)}
+.price-note b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* Abrechnungsbogen */
+.sheet{background:var(--sheet);border:1px solid var(--rule);box-shadow:0 1px 0 var(--rule),0 18px 40px -24px rgba(23,34,44,.35);padding:26px 26px 20px;font-family:var(--mono);font-size:.84rem;transform:rotate(.6deg)}
+.sheet-head{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:6px}
+.sheet-head b{font-family:var(--display);font-stretch:100%;font-size:1rem}
+.sheet-head small{color:var(--muted);text-align:right}
+.row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:7px 0;border-bottom:1px dotted var(--rule);font-variant-numeric:tabular-nums;position:relative}
+.row .eur{text-align:right}
+.row.flag .label,.row.flag .eur{position:relative}
+.row.flag .label::after{content:"";position:absolute;left:-4px;right:-6px;top:52%;height:2px;background:var(--mark);transform-origin:left;animation:strike .7s ease-out both;animation-delay:var(--d,.4s)}
+.note{display:block;grid-column:1/-1;color:var(--mark);font-family:var(--body);font-size:.8rem;font-weight:600;padding-left:14px;border-left:2px solid var(--mark);margin-top:4px}
+.row.check .note{color:var(--ok);border-color:var(--ok)}
+.total{display:grid;grid-template-columns:1fr auto;gap:12px;padding-top:10px;font-weight:600;font-variant-numeric:tabular-nums}
+.stamp{margin-top:16px;display:inline-block;border:2px solid var(--mark);color:var(--mark);padding:4px 10px;font-family:var(--display);font-weight:800;font-stretch:90%;letter-spacing:.06em;font-size:.82rem;transform:rotate(-3deg)}
+@keyframes strike{from{transform:scaleX(.15)}to{transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){.row.flag .label::after{animation:none}}
+
+/* Abschnitte */
+section{padding:72px 0;border-top:1px solid var(--rule)}
+.sec-head{display:grid;grid-template-columns:200px 1fr;gap:32px;margin-bottom:40px}
+.sec-head .no{font-family:var(--mono);font-size:.8rem;color:var(--muted);padding-top:10px}
+.sec-head-text{display:flex;flex-direction:column;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:2px solid var(--ink)}
+.cell{padding:22px 22px 26px 0;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:10px}
+.cell+.cell{padding-left:22px}
+.cell:nth-child(3n+1){padding-left:0}
+.cell:nth-child(3n){border-right:0}
+.cell:nth-child(n+4){border-top:1px solid var(--rule)}
+.cell p{color:var(--muted);font-size:.97rem}
+.ref{font-family:var(--mono);font-size:.75rem;color:var(--mark)}
+
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.steps li{display:flex;flex-direction:column;gap:8px;border-top:2px solid var(--ink);padding-top:14px}
+.steps .n{font-family:var(--mono);font-size:.8rem;color:var(--mark);font-weight:600}
+.steps p{color:var(--muted);font-size:.95rem}
+
+.offer{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+.price-card{background:var(--sheet);border:1px solid var(--rule);padding:28px;display:flex;flex-direction:column;gap:16px}
+.price-big{font-family:var(--display);font-weight:800;font-stretch:80%;font-size:3.4rem;line-height:1;font-variant-numeric:tabular-nums}
+.price-big small{font-size:1rem;font-family:var(--body);font-weight:500;color:var(--muted);margin-left:6px}
+.list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.list li{padding-left:22px;position:relative}
+.list li::before{content:"✓";position:absolute;left:0;color:var(--ok);font-weight:700}
+.list.no li::before{content:"–";color:var(--muted)}
+.small{font-size:.88rem;color:var(--muted)}
+
+/* Formular */
+form{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+label{font-size:.9rem;font-weight:600}
+label .opt{font-weight:400;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:1rem;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-bottom:2px solid var(--ink);border-radius:0;padding:11px 12px;width:100%}
+textarea{min-height:110px;resize:vertical}
+.consent{grid-column:1/-1;display:flex;gap:10px;align-items:flex-start;font-size:.9rem;color:var(--muted)}
+.consent input{width:auto;margin-top:4px}
+.hidden{position:absolute;left:-9999px}
+.form-msg{grid-column:1/-1;font-weight:600;min-height:1.4em}
+.form-msg.ok{color:var(--ok)}
+.form-msg.err{color:var(--mark)}
+
+.faq{display:flex;flex-direction:column;border-top:2px solid var(--ink)}
+.faq details{border-bottom:1px solid var(--rule);padding:16px 0}
+.faq summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::after{content:"+";font-family:var(--mono);color:var(--mark)}
+.faq details[open] summary::after{content:"–"}
+.faq details p{margin-top:10px;color:var(--muted);max-width:44em}
+
+footer{border-top:1px solid var(--rule);padding:40px 0 56px;font-size:.85rem;color:var(--muted)}
+.foot{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.foot h3{font-size:.95rem;color:var(--ink);margin-bottom:8px}
+.placeholder{background:rgba(196,54,28,.12);color:var(--mark);padding:0 4px}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;gap:40px;padding:40px 0 56px}
+  .sheet{transform:none}
+  .sec-head{grid-template-columns:1fr;gap:8px}
+  .grid3{grid-template-columns:1fr}
+  .cell,.cell+.cell,.cell:nth-child(3n+1){padding:20px 0;border-right:0;border-top:0;border-bottom:1px solid var(--rule)}
+  .steps{grid-template-columns:1fr 1fr}
+  .offer{grid-template-columns:1fr}
+  .foot{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  form{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .pill{display:none}
+  section{padding:52px 0}
+}
+.files{display:grid;grid-template-columns:1fr;gap:12px}
+input[type=file]{padding:9px;font-size:.92rem;border-bottom-width:1px;border-style:dashed}
+.hint{font-size:.82rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#">Abrechnungs<span>klar</span></a>
+    <span class="pill">Pilot · 10 Plätze · Ostalb &amp; digital</span>
+  </header>
+
+  <div class="hero">
+    <div class="hero-text">
+      <span class="deadline">Frist Abrechnung 2025 → 31.12.2026</span>
+      <h1>Ihre Nebenkosten&shy;abrechnung, geprüft bevor der Mieter sie prüft.</h1>
+      <p class="lede">Für private Vermieter mit 1 bis 20 Wohnungen: Wir gehen Ihre Betriebskostenabrechnung Position für Position durch, rechnen nach und markieren, was Ihnen Nachforderungen kostet oder Streit einbringt. Sie erhalten einen klaren Prüfbericht, bevor die Abrechnung rausgeht.</p>
+      <div class="cta-row">
+        <a class="btn" href="#anfrage">Pilotplatz anfragen</a>
+        <span class="price-note"><b>49 €</b> pro Objekt · Zahlung erst nach dem Bericht</span>
+      </div>
+    </div>
+
+    <div class="sheet" aria-label="Beispiel: Auszug einer geprüften Betriebskostenabrechnung">
+      <div class="sheet-head">
+        <b>Betriebskostenabrechnung 2025</b>
+        <small>Musterstr. 4, 2. OG links<br>Fläche 78,4 m² von 412,0 m²</small>
+      </div>
+      <div class="row"><span class="label">Grundsteuer</span><span class="eur">212,40 €</span></div>
+      <div class="row"><span class="label">Wasser / Abwasser</span><span class="eur">388,15 €</span></div>
+      <div class="row flag" style="--d:.5s"><span class="label">Verwaltungskosten</span><span class="eur">96,00 €</span>
+        <span class="note">Bei Wohnraum nicht umlagefähig</span></div>
+      <div class="row"><span class="label">Hausreinigung</span><span class="eur">164,90 €</span></div>
+      <div class="row flag" style="--d:.9s"><span class="label">Reparatur Hoftor</span><span class="eur">58,30 €</span>
+        <span class="note">Instandhaltung, keine Betriebskosten</span></div>
+      <div class="row"><span class="label">Heizung &amp; Warmwasser</span><span class="eur">1.047,60 €</span>
+        <span class="note">CO₂-Kostenaufteilung fehlt (Stufenmodell)</span></div>
+      <div class="row check"><span class="label">Vorauszahlungen</span><span class="eur">−1.800,00 €</span>
+        <span class="note">Stimmt mit Kontoauszügen überein</span></div>
+      <div class="total"><span>Nachzahlung laut Entwurf</span><span>167,35 €</span></div>
+      <span class="stamp">3 Prüfvermerke</span>
+    </div>
+  </div>
+</div>
+
+<section id="pruefung">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="no">01 / Was geprüft wird</span>
+      <div class="sec-head-text">
+        <h2>Die Fehler, die Mieterportale am häufigsten finden.</h2>
+        <p class="lede">Prüfportale für Mieter melden bei der Mehrheit der eingereichten Abrechnungen Beanstandungen. Wir drehen das um und suchen dieselben Fehler auf Ihrer Seite, solange Sie sie noch korrigieren können.</p>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="cell"><span class="ref">Formalien</span><h3>Fristen und Pflichtangaben</h3><p>Abrechnungszeitraum, Zugang innerhalb von 12 Monaten, Gesamtkosten, Verteilerschlüssel, Abzug der Vorauszahlungen. Fehlt hier etwas, kann die Nachforderung ganz entfallen.</p></div>
+      <div class="cell"><span class="ref">Kostenpositionen</span><h3>Was umgelegt werden darf</h3><p>Abgleich jeder Position mit dem Katalog der Betriebskostenverordnung und den Angaben im Mietvertrag. Typische Ausreißer: Verwaltung, Reparaturen, Rücklagen, Einmalkosten.</p></div>
+      <div class="cell"><span class="ref">Heizkosten &amp; CO₂</span><h3>Heizkosten&shy;verordnung und CO₂-Aufteilung</h3><p>Verbrauchsanteil, Ablesung, Vorjahresvergleich und die Aufteilung der CO₂-Kosten zwischen Vermieter und Mieter nach dem Stufenmodell.</p></div>
+      <div class="cell"><span class="ref">Rechnerisch</span><h3>Summen und Anteile</h3><p>Flächen, Personen, Einheiten und Leerstand werden nachgerechnet. Jede Position wird bis zum Mieteranteil verfolgt.</p></div>
+      <div class="cell"><span class="ref">Plausibilität</span><h3>Vergleich mit dem Vorjahr</h3><p>Sprünge über 10 % je Position werden markiert, damit Sie eine Erklärung parat haben, bevor die Rückfrage kommt.</p></div>
+      <div class="cell"><span class="ref">Bonus</span><h3>§ 35a-Ausweis für Mieter</h3><p>Wir prüfen, ob haushaltsnahe Dienstleistungen und Handwerkerleistungen ausgewiesen sind. Das verhindert Rückfragen zur Steuererklärung.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="ablauf">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="no">02 / Ablauf</span>
+      <div class="sec-head-text"><h2>In drei Werktagen vom Entwurf zum Prüfbericht.</h2></div>
+    </div>
+    <ol class="steps">
+      <li><span class="n">1 · Anfrage</span><h3>Formular ausfüllen</h3><p>Zwei Minuten. Den Abrechnungsentwurf laden Sie gleich mit hoch.</p></li>
+      <li><span class="n">2 · Belege</span><h3>Gezielt nachreichen</h3><p>Wir sagen Ihnen genau, welche Rechnungen und Bescheide wir noch brauchen.</p></li>
+      <li><span class="n">3 · Prüfung</span><h3>Bericht in 3 Werktagen</h3><p>Jeder Vermerk mit Fundstelle, Betrag und konkretem Korrekturvorschlag.</p></li>
+      <li><span class="n">4 · Zahlung</span><h3>Erst danach bezahlen</h3><p>Rechnung über 49 € nach Erhalt des Berichts. Passt er nicht, zahlen Sie nichts.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="angebot">
+  <div class="wrap offer">
+    <div class="sec-head-text">
+      <span class="no" style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">03 / Pilotangebot</span>
+      <h2>Zehn Pilotplätze für die Abrechnung 2025.</h2>
+      <p class="lede">Abrechnungsklar startet als Pilot mit Vermietern aus der Ostalb und Umgebung. Die Prüfung läuft komplett digital. Im Gegenzug für den Pilotpreis bitten wir um ein kurzes Feedbackgespräch.</p>
+      <ul class="list no small">
+        <li>Keine Rechtsberatung und keine Vertretung gegenüber Mietern</li>
+        <li>Keine Erstellung der Abrechnung von Grund auf (folgt später)</li>
+      </ul>
+    </div>
+    <div class="price-card">
+      <div class="price-big">49 €<small>pro Objekt und Abrechnungsjahr</small></div>
+      <ul class="list">
+        <li>Bis 12 Wohneinheiten pro Objekt</li>
+        <li>Prüfbericht als PDF mit allen Vermerken</li>
+        <li>Korrekturvorschläge je Position</li>
+        <li>Vorjahresvergleich, wenn vorhanden</li>
+        <li>Eine Rückfrage per Telefon inklusive</li>
+      </ul>
+      <a class="btn" href="#anfrage" style="text-align:center">Pilotplatz anfragen</a>
+      <p class="small">Später regulär voraussichtlich 79 €. Preise inkl. ggf. anfallender USt.</p>
+    </div>
+  </div>
+</section>
+
+<section id="anfrage">
+  <div class="wrap offer">
+    <div class="sec-head-text">
+      <span class="no" style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">04 / Anfrage</span>
+      <h2>Pilotplatz anfragen</h2>
+      <p class="lede">Laden Sie den Abrechnungsentwurf gleich mit hoch. Belege können Sie danach nachreichen. Zusammen höchstens 8 MB.</p>
+    </div>
+    <form name="pilot-anfrage" method="POST" enctype="multipart/form-data" data-netlify="true" netlify-honeypot="bot-field" id="pilot-form">
+      <input type="hidden" name="form-name" value="pilot-anfrage">
+      <p class="hidden"><label for="bot-field">Nicht ausfüllen</label><input id="bot-field" name="bot-field"></p>
+      <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" autocomplete="name" required></div>
+      <div class="field"><label for="f-mail">E-Mail</label><input id="f-mail" name="email" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="f-tel">Telefon <span class="opt">(optional)</span></label><input id="f-tel" name="telefon" type="tel" autocomplete="tel"></div>
+      <div class="field"><label for="f-ort">Ort des Objekts</label><input id="f-ort" name="ort" placeholder="z. B. Aalen" required></div>
+      <div class="field"><label for="f-we">Wohneinheiten im Objekt</label>
+        <select id="f-we" name="wohneinheiten" required>
+          <option value="">Bitte wählen</option><option>1–2</option><option>3–6</option><option>7–12</option><option>mehr als 12</option>
+        </select></div>
+      <div class="field"><label for="f-heiz">Heizung</label>
+        <select id="f-heiz" name="heizung" required>
+          <option value="">Bitte wählen</option><option>Zentralheizung Gas/Öl</option><option>Fernwärme</option><option>Wärmepumpe</option><option>Etagenheizung (Mieter zahlt direkt)</option><option>Weiß ich nicht</option>
+        </select></div>
+      <div class="field full"><label for="f-wie">Wie erstellen Sie die Abrechnung heute?</label>
+        <select id="f-wie" name="erstellung" required>
+          <option value="">Bitte wählen</option><option>Selbst mit Excel / von Hand</option><option>Mit Vermietersoftware</option><option>Durch Hausverwaltung</option><option>Abrechnungsdienst (z. B. für Heizkosten) + selbst</option>
+        </select></div>
+      <div class="field full files">
+        <div class="field"><label for="f-up1">Abrechnungsentwurf 2025</label><input id="f-up1" name="abrechnung" type="file" accept=".pdf,image/*"></div>
+        <div class="field"><label for="f-up2">Vorjahresabrechnung <span class="opt">(optional)</span></label><input id="f-up2" name="vorjahr" type="file" accept=".pdf,image/*"></div>
+        <div class="field"><label for="f-up3">Mietvertrag: Seite mit Fläche und Betriebskosten <span class="opt">(optional)</span></label><input id="f-up3" name="mietvertrag" type="file" accept=".pdf,image/*"></div>
+        <div class="field"><label for="f-up4">Heizkostenabrechnung des Messdienstes <span class="opt">(optional)</span></label><input id="f-up4" name="heizkosten" type="file" accept=".pdf,image/*"></div>
+        <span class="hint">Mieternamen dürfen Sie schwärzen. Rechnungen und Bescheide fordern wir danach gezielt an.</span>
+      </div>
+      <div class="field full"><label for="f-msg">Was sollen wir wissen? <span class="opt">(optional)</span></label><textarea id="f-msg" name="nachricht" placeholder="z. B. Abrechnung ist schon fertig, Mieter hat letztes Jahr widersprochen, neue Heizung …"></textarea></div>
+      <label class="consent" for="f-ds"><input id="f-ds" name="datenschutz" type="checkbox" required> Ich bin einverstanden, dass meine Angaben und hochgeladenen Unterlagen zur Bearbeitung der Anfrage gespeichert werden. Details in der Datenschutzerklärung unten.</label>
+      <div><button class="btn" type="submit" id="f-submit">Anfrage senden</button></div>
+      <p class="form-msg" id="f-status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="no">05 / Fragen</span>
+      <div class="sec-head-text"><h2>Häufige Fragen</h2></div>
+    </div>
+    <div class="faq">
+      <details><summary>Ist das eine Rechtsberatung?</summary><p>Nein. Abrechnungsklar ist ein rechnerischer Plausibilitäts- und Vollständigkeitscheck Ihrer eigenen Abrechnung. Wir zeigen auf, wo Abweichungen vom üblichen Vorgehen und von den einschlägigen Vorgaben bestehen. Für die rechtliche Bewertung eines Einzelfalls, etwa bei einem Streit mit Mietern, wenden Sie sich an einen Rechtsanwalt oder Ihren Haus- und Grundbesitzerverein.</p></details>
+      <details><summary>Wie gehen Sie mit den Daten meiner Mieter um?</summary><p>Unterlagen werden verschlüsselt übertragen und beim Hosting-Anbieter gespeichert. Mit Pilotkunden schließen wir eine Vereinbarung zur Auftragsverarbeitung. Nach Abschluss der Prüfung löschen wir die Unterlagen innerhalb von 30 Tagen.</p></details>
+      <details><summary>Nutzen Sie KI?</summary><p>Ja, zur Auswertung der Belege und für die Rechenprüfung. Jeder Prüfvermerk wird vor dem Versand von einem Menschen kontrolliert.</p></details>
+      <details><summary>Meine Abrechnung ist schon beim Mieter. Lohnt sich das noch?</summary><p>Ja. Innerhalb der Abrechnungsfrist können Sie eine korrigierte Abrechnung nachschieben. Außerdem verhindern Sie, dass derselbe Fehler im nächsten Jahr wieder auftaucht.</p></details>
+      <details><summary>Was, wenn der Bericht nichts findet?</summary><p>Dann haben Sie es schriftlich, dass Ihre Abrechnung sauber ist. Das ist bei einem Widerspruch des Mieters ebenfalls hilfreich. Gefällt Ihnen der Bericht nicht, zahlen Sie im Pilot nichts.</p></details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div id="impressum">
+      <h3>Impressum</h3>
+      <p>Angaben gemäß § 5 DDG<br>
+      Maximilian Riede<br>
+      Am Limes 18<br>
+      73563 Mögglingen<br>
+      E-Mail: m.riede@web.de</p>
+    </div>
+    <div id="datenschutz">
+      <h3>Datenschutz in Kürze</h3>
+      <p>Verantwortlich ist die im Impressum genannte Person. Die Angaben und Unterlagen aus dem Anfrageformular werden ausschließlich zur Bearbeitung Ihrer Anfrage verwendet (Art. 6 Abs. 1 lit. b DSGVO) und beim Hosting-Anbieter Netlify, Inc., USA (auf Grundlage der EU-Standardvertragsklauseln) gespeichert. Löschung spätestens 6 Monate nach Abschluss, sofern keine Aufbewahrungspflicht besteht. Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch und Beschwerde bei einer Aufsichtsbehörde.</p>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:24px;font-family:var(--mono);font-size:.72rem">Version 4 · 07.11.2026 · automatische Prüfung</div>
+</footer>
+
+<script>
+(function(){
+  var form=document.getElementById('pilot-form');
+  var status=document.getElementById('f-status');
+  var btn=document.getElementById('f-submit');
+  var host=location.hostname||'';
+  var isPreview=/claude|anthropic|usercontent/.test(host)||location.protocol==='file:';
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    status.className='form-msg';
+    if(!form.checkValidity()){form.reportValidity();return;}
+    if(isPreview){
+      status.className='form-msg ok';
+      status.textContent='Vorschau: Das Formular wird aktiv, sobald die Seite live ist. Ihre Eingaben wurden nicht gesendet.';
+      return;
+    }
+    var total=0;
+    form.querySelectorAll('input[type=file]').forEach(function(i){for(var k=0;k<i.files.length;k++){total+=i.files[k].size;}});
+    if(total>7.5*1024*1024){
+      status.className='form-msg err';
+      status.textContent='Die Dateien sind zusammen größer als 8 MB. Bitte kleinere Fotos oder PDFs wählen, zum Beispiel nur die Abrechnung selbst; Belege können Sie nachreichen.';
+      return;
+    }
+    btn.disabled=true;btn.textContent='Wird hochgeladen …';
+    fetch('/',{method:'POST',body:new FormData(form)})
+      .then(function(r){
+        if(!r.ok) throw new Error(r.status);
+        form.reset();
+        status.className='form-msg ok';
+        status.textContent='Danke! Ihre Anfrage ist angekommen. Wir melden uns innerhalb von 24 Stunden.';
+      })
+      .catch(function(){
+        status.className='form-msg err';
+        status.textContent='Das Senden hat nicht geklappt. Bitte versuchen Sie es in einer Minute erneut oder schreiben Sie uns an die Adresse im Impressum.';
+      })
+      .finally(function(){btn.disabled=false;btn.textContent='Anfrage senden';});
+  });
+})();
+</script>
+</body>
+</html>
